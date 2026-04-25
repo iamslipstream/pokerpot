@@ -5,9 +5,9 @@ export type DetectedCounts = Record<string, number>;
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Llama 4 Maverick — bigger / more experts than Scout, slightly slower but
-// noticeably better at counting/spatial tasks. Free tier on Groq.
-const MODEL = "meta-llama/llama-4-maverick-17b-128e-instruct";
+// Llama 4 Scout — vision model on Groq's free tier. Maverick (bigger) is
+// gated to higher tiers; Scout + improved reasoning prompt is the sweet spot.
+const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 export async function detectChipsFromImage(
   imageBase64: string,
