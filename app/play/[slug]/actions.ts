@@ -31,47 +31,66 @@ export async function submitFinalAmount(formData: FormData) {
   revalidatePath(`/games/${player.gameId}`);
 }
 
-export async function detectChipsFromPhoto(formData: FormData): Promise<{
-  counts: DetectedCounts;
-}> {
-  const slug = formData.get("slug") as string;
-  const file = formData.get("image") as File | null;
+export type DetectChipsResult =
+  | { ok: true; counts: DetectedCounts }
+  | { ok: false; error: string };
 
-  if (!file) throw new Error("No image uploaded");
-  if (file.size > 5 * 1024 * 1024) {
-    throw new Error("Image too big (max 5MB) — try retaking the photo");
-  }
+export async function detectChipsFromPhoto(
+  formData: FormData
+): Promise<DetectChipsResult> {
+  try {
+    const slug = formData.get("slug") as string;
+    const file = formData.get("image") as File | null;
 
-  const player = await prisma.player.findUnique({
-    where: { slug },
-    include: { game: true },
-  });
-  if (!player) throw new Error("Player not found");
+    if (!file) return { ok: false, error: "No image uploaded" };
+    if (file.size > 5 * 1024 * 1024) {
+      return {
+        ok: false,
+        error: "Image too big (max 5MB) — try retaking the photo",
+      };
+    }
 
-  const denominations = parseChipDenominations(player.game.chipDenominations);
-  if (denominations.length === 0) {
-    throw new Error(
-      "Host hasn't configured chip denominations for this game yet."
+    const player = await prisma.player.findUnique({
+      where: { slug },
+      include: { game: true },
+    });
+    if (!player) return { ok: false, error: "Player not found" };
+
+    const denominations = parseChipDenominations(
+      player.game.chipDenominations
     );
+    if (denominations.length === 0) {
+      return {
+        ok: false,
+        error: "Host hasn't configured chip denominations for this game.",
+      };
+    }
+
+    if (!process.env.GROQ_API_KEY) {
+      return {
+        ok: false,
+        error:
+          "Vision is not configured (GROQ_API_KEY missing on the server). Enter your amount manually.",
+      };
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+    const mediaTypeRaw = file.type || "image/jpeg";
+    const mediaType =
+      mediaTypeRaw === "image/png" ||
+      mediaTypeRaw === "image/webp" ||
+      mediaTypeRaw === "image/gif"
+        ? mediaTypeRaw
+        : "image/jpeg";
+
+    const counts = await detectChipsFromImage(base64, mediaType, denominations);
+    return { ok: true, counts };
+  } catch (err) {
+    console.error("[detectChipsFromPhoto]", err);
+    const message =
+      err instanceof Error ? err.message : "Unexpected detection error";
+    return { ok: false, error: message };
   }
-
-  const arrayBuffer = await file.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString("base64");
-
-  const mediaTypeRaw = file.type || "image/jpeg";
-  const mediaType =
-    mediaTypeRaw === "image/png" ||
-    mediaTypeRaw === "image/webp" ||
-    mediaTypeRaw === "image/gif"
-      ? mediaTypeRaw
-      : "image/jpeg";
-
-  if (!process.env.GROQ_API_KEY) {
-    throw new Error(
-      "Vision is not configured (GROQ_API_KEY missing). Enter your amount manually."
-    );
-  }
-
-  const counts = await detectChipsFromImage(base64, mediaType, denominations);
-  return { counts };
 }

@@ -49,7 +49,11 @@ export function CashoutEntry({
       fd.append("slug", slug);
       fd.append("image", file);
       const result = await detectChipsFromPhoto(fd);
-      setCounts((prev) => ({ ...prev, ...result.counts }));
+      if (result.ok) {
+        setCounts((prev) => ({ ...prev, ...result.counts }));
+      } else {
+        setDetectError(result.error);
+      }
     } catch (err) {
       setDetectError(err instanceof Error ? err.message : "Detection failed");
     } finally {
