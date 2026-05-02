@@ -64,7 +64,12 @@ Be conservative — it's better to undercount slightly than to invent chips that
     config: {
       responseMimeType: "application/json",
       temperature: 0.5,
-      maxOutputTokens: 1024,
+      // Gemini 2.5 Flash burns "thinking" tokens before emitting output;
+      // those count against maxOutputTokens, which truncated our JSON.
+      // We get reasoning via the explicit `groups` field in the prompt,
+      // so disabling thinking is both faster and avoids the truncation.
+      thinkingConfig: { thinkingBudget: 0 },
+      maxOutputTokens: 2048,
     },
   });
 
