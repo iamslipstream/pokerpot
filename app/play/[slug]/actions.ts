@@ -66,11 +66,11 @@ export async function detectChipsFromPhoto(
       };
     }
 
-    if (!process.env.GROQ_API_KEY) {
+    if (!process.env.GOOGLE_AI_API_KEY) {
       return {
         ok: false,
         error:
-          "Vision is not configured (GROQ_API_KEY missing on the server). Enter your amount manually.",
+          "Vision is not configured (GOOGLE_AI_API_KEY missing on the server). Enter your amount manually.",
       };
     }
 
