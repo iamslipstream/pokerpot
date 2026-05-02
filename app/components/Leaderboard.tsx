@@ -198,14 +198,7 @@ export function Leaderboard({
                   </div>
                   <div className="mt-0.5 text-xs text-zinc-500">
                     {s.gamesPlayed}{" "}
-                    {s.gamesPlayed === 1 ? "game" : "games"} · best{" "}
-                    <span className="font-mono">
-                      {formatNet(s.bestNight)}
-                    </span>{" "}
-                    · worst{" "}
-                    <span className="font-mono">
-                      {formatNet(s.worstNight)}
-                    </span>
+                    {s.gamesPlayed === 1 ? "game" : "games"}
                   </div>
                 </div>
                 <div className={`font-mono text-base ${netClass(s.lifetimeNet)}`}>
@@ -232,12 +225,7 @@ export function Leaderboard({
                 {i + 1}
               </span>
               <span className="min-w-0 flex-1 truncate">{s.displayName}</span>
-              <span className="text-xs text-zinc-500">
-                {s.gamesPlayed}g · best{" "}
-                <span className="font-mono">{formatNet(s.bestNight)}</span> ·
-                worst{" "}
-                <span className="font-mono">{formatNet(s.worstNight)}</span>
-              </span>
+              <span className="text-xs text-zinc-500">{s.gamesPlayed}g</span>
               <span className={`w-20 text-right font-mono ${netClass(s.lifetimeNet)}`}>
                 {formatNet(s.lifetimeNet)}
               </span>
