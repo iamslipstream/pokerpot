@@ -9,7 +9,21 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 // gated to higher tiers; Scout + improved reasoning prompt is the sweet spot.
 const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
-export async function detectChipsFromImage(
+// Self-consistency: call N samples in parallel and take the per-color median.
+// Small vision models hallucinate counts inconsistently, so this is a cheap
+// way to drop the variance without paying for a stronger model.
+const SAMPLES = 3;
+
+function median(nums: number[]): number {
+  if (nums.length === 0) return 0;
+  const sorted = [...nums].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
+    : sorted[mid];
+}
+
+async function detectOnce(
   imageBase64: string,
   imageMediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif",
   denominations: ChipDenomination[]
@@ -54,7 +68,9 @@ Be conservative — it's better to undercount slightly than to invent chips that
       },
     ],
     response_format: { type: "json_object" },
-    temperature: 0.1, // deterministic-ish; counting is not a creative task
+    // Higher temperature than a single-shot call — we want genuinely
+    // independent samples to median, not three identical answers.
+    temperature: 0.5,
     max_tokens: 512,
   });
 
@@ -85,4 +101,44 @@ Be conservative — it's better to undercount slightly than to invent chips that
     counts[color] = n;
   }
   return counts;
+}
+
+export async function detectChipsFromImage(
+  imageBase64: string,
+  imageMediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+  denominations: ChipDenomination[]
+): Promise<DetectedCounts> {
+  const colors = denominations.map((d) => d.color);
+
+  const settled = await Promise.allSettled(
+    Array.from({ length: SAMPLES }, () =>
+      detectOnce(imageBase64, imageMediaType, denominations)
+    )
+  );
+
+  const successes = settled
+    .filter(
+      (r): r is PromiseFulfilledResult<DetectedCounts> => r.status === "fulfilled"
+    )
+    .map((r) => r.value);
+
+  if (successes.length === 0) {
+    // Surface the first failure so the user gets a real error, not a silent zero.
+    const firstFailure = settled.find(
+      (r): r is PromiseRejectedResult => r.status === "rejected"
+    );
+    const reason =
+      firstFailure?.reason instanceof Error
+        ? firstFailure.reason.message
+        : "All vision samples failed";
+    throw new Error(reason);
+  }
+
+  // Per-color median across whichever samples succeeded.
+  const result: DetectedCounts = {};
+  for (const color of colors) {
+    const values = successes.map((c) => c[color] ?? 0);
+    result[color] = median(values);
+  }
+  return result;
 }
