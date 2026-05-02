@@ -4,6 +4,43 @@ import { centsToEuros } from "@/lib/money";
 import { getLifetimeStats } from "@/lib/stats";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { readdir } from "node:fs/promises";
+import path from "node:path";
+
+const PHOTO_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"];
+
+function playerSlug(normalizedName: string): string {
+  return normalizedName
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+async function getPlayerPhotoMap(): Promise<Map<string, string>> {
+  const dir = path.join(process.cwd(), "public", "players");
+  const map = new Map<string, string>();
+  try {
+    const files = await readdir(dir);
+    for (const f of files) {
+      const ext = path.extname(f).toLowerCase();
+      if (!PHOTO_EXTS.includes(ext)) continue;
+      const base = path.basename(f, ext).toLowerCase();
+      if (!map.has(base)) map.set(base, f);
+    }
+  } catch {
+    // directory doesn't exist yet — no photos available
+  }
+  return map;
+}
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -11,13 +48,14 @@ export default async function DashboardPage() {
     redirect("/api/auth/signin?callbackUrl=/dashboard");
   }
 
-  const [games, lifetime] = await Promise.all([
+  const [games, lifetime, photoMap] = await Promise.all([
     prisma.game.findMany({
       where: { hostId: session.user.id },
       include: { players: { include: { buyIns: true } } },
       orderBy: { createdAt: "desc" },
     }),
     getLifetimeStats(session.user.id),
+    getPlayerPhotoMap(),
   ]);
 
   return (
@@ -118,12 +156,29 @@ export default async function DashboardPage() {
               {lifetime.stats.map((s, i) => {
                 const positive = s.lifetimeNet > 0;
                 const negative = s.lifetimeNet < 0;
+                const photoFile = photoMap.get(playerSlug(s.normalizedName));
                 return (
                   <li
                     key={s.normalizedName}
                     className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950"
                   >
                     <div className="flex items-center justify-between gap-3">
+                      {photoFile ? (
+                        <Image
+                          src={`/players/${photoFile}`}
+                          alt={s.displayName}
+                          width={40}
+                          height={40}
+                          className="h-10 w-10 shrink-0 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          aria-hidden
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                        >
+                          {initials(s.displayName)}
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           {i === 0 && positive && (
