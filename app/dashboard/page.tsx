@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { centsToEuros } from "@/lib/money";
 import { getLifetimeStats } from "@/lib/stats";
 import { getPlayerPhotoMap } from "@/lib/photos";
-import { Avatar } from "@/app/components/Avatar";
+import { Leaderboard } from "@/app/components/Leaderboard";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
@@ -38,10 +38,11 @@ export default async function DashboardPage() {
       <div className="pointer-events-none absolute -top-32 left-1/2 h-80 w-80 -translate-x-1/2 animate-drift rounded-full bg-emerald-300/20 blur-3xl dark:bg-emerald-700/15" />
 
       <div className="relative z-10 mx-auto w-full max-w-2xl animate-fade-in">
+        {/* Header ---------------------------------------------------------- */}
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
-              Your games
+              Pokerpot
             </h1>
             <p className="text-sm text-zinc-500">
               {session.user.name} · {session.user.email}
@@ -55,26 +56,29 @@ export default async function DashboardPage() {
           >
             <button
               type="submit"
-              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm transition hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
             >
               Sign out
             </button>
           </form>
         </header>
 
-        <div className="mt-8">
+        {/* New game CTA ---------------------------------------------------- */}
+        <div className="mt-6">
           <Link
             href="/games/new"
-            className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-black/10 transition hover:scale-[1.02] hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-black/10 transition hover:scale-[1.02] hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
           >
-            + New game
+            <span className="relative z-10">+ New game</span>
+            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
           </Link>
         </div>
 
+        {/* AI recap -------------------------------------------------------- */}
         {latestRecap?.recap && (
           <Link
             href={`/games/${latestRecap.id}`}
-            className="group mt-6 block animate-fade-up rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-5 shadow-sm transition hover:shadow-md dark:border-emerald-900/60 dark:from-emerald-950 dark:via-zinc-950 dark:to-amber-950"
+            className="card-lift group mt-6 block animate-fade-up rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-5 shadow-sm dark:border-emerald-900/60 dark:from-emerald-950 dark:via-zinc-950 dark:to-amber-950"
           >
             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
               <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
@@ -91,7 +95,24 @@ export default async function DashboardPage() {
           </Link>
         )}
 
-        <ul className="stagger mt-8 flex flex-col gap-3">
+        {/* Leaderboard ----------------------------------------------------- */}
+        <Leaderboard
+          stats={lifetime.stats}
+          photoMap={photoMap}
+          totalSettledGames={lifetime.totalSettledGames}
+        />
+
+        {/* Visual divider -------------------------------------------------- */}
+        <div className="mt-12 flex items-center gap-4">
+          <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+            Recent games
+          </span>
+          <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        </div>
+
+        {/* Recent games ---------------------------------------------------- */}
+        <ul className="stagger mt-4 flex flex-col gap-3">
           {games.length === 0 ? (
             <li className="rounded-xl border border-dashed border-zinc-300 p-8 text-center text-zinc-500 dark:border-zinc-700">
               No games yet. Click <span className="font-medium">New game</span>{" "}
@@ -136,117 +157,6 @@ export default async function DashboardPage() {
             })
           )}
         </ul>
-
-        {lifetime.stats.length > 0 && (
-          <section className="mt-12">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-                Lifetime stats
-              </h2>
-              <span className="text-xs text-zinc-500">
-                {lifetime.totalSettledGames} settled{" "}
-                {lifetime.totalSettledGames === 1 ? "game" : "games"}
-              </span>
-            </div>
-
-            <ul className="stagger mt-3 flex flex-col gap-2">
-              {lifetime.stats.map((s, i) => {
-                const positive = s.lifetimeNet > 0;
-                const negative = s.lifetimeNet < 0;
-                return (
-                  <li
-                    key={s.normalizedName}
-                    className="card-lift rounded-xl border border-zinc-200 bg-white/80 p-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <Avatar
-                        name={s.displayName}
-                        photoMap={photoMap}
-                        size="md"
-                        ring={i === 0 && positive ? "gold" : "soft"}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {i === 0 && positive && (
-                            <span title="Top winner" className="text-base">
-                              👑
-                            </span>
-                          )}
-                          {i === lifetime.stats.length - 1 && negative && (
-                            <span title="Biggest loser" className="text-base">
-                              💀
-                            </span>
-                          )}
-                          <span className="font-medium text-black dark:text-zinc-50">
-                            {s.displayName}
-                          </span>
-                          {s.isWhale && (
-                            <span
-                              title={`Whale — most bought in (${centsToEuros(s.totalBuyIn)})`}
-                              className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-800 dark:bg-blue-950 dark:text-blue-200"
-                            >
-                              🐋 Whale
-                            </span>
-                          )}
-                          {s.isRock && (
-                            <span
-                              title="Rock — steadiest player (lowest variance)"
-                              className="rounded-full bg-stone-200 px-1.5 py-0.5 text-[10px] font-medium text-stone-800 dark:bg-stone-800 dark:text-stone-200"
-                            >
-                              🪨 Rock
-                            </span>
-                          )}
-                          {s.streak && (
-                            <span
-                              title={`${s.streak.count} ${s.streak.kind === "win" ? "wins" : "losses"} in a row`}
-                              className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                                s.streak.kind === "win"
-                                  ? "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200"
-                                  : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200"
-                              }`}
-                            >
-                              {s.streak.kind === "win" ? "🔥" : "🥶"} {s.streak.count}
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-0.5 text-xs text-zinc-500">
-                          {s.gamesPlayed}{" "}
-                          {s.gamesPlayed === 1 ? "game" : "games"} · best{" "}
-                          <span className="font-mono">
-                            {s.bestNight >= 0 ? "+" : ""}
-                            {centsToEuros(s.bestNight)}
-                          </span>{" "}
-                          · worst{" "}
-                          <span className="font-mono">
-                            {s.worstNight >= 0 ? "+" : ""}
-                            {centsToEuros(s.worstNight)}
-                          </span>
-                        </div>
-                      </div>
-                      <div
-                        className={`text-lg font-mono ${
-                          positive
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : negative
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-zinc-500"
-                        }`}
-                      >
-                        {positive ? "+" : ""}
-                        {centsToEuros(s.lifetimeNet)}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-
-            <p className="mt-3 text-xs text-zinc-500">
-              Players are matched by name (case-insensitive). Use consistent
-              names across games to keep stats accurate.
-            </p>
-          </section>
-        )}
       </div>
     </main>
   );
