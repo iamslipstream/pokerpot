@@ -82,6 +82,9 @@ function PodiumStep({
           <div className={`font-mono text-base font-bold ${netClass(s.lifetimeNet)}`}>
             {formatNet(s.lifetimeNet)}
           </div>
+          <div className="text-[10px] text-zinc-500">
+            {s.gamesPlayed} {s.gamesPlayed === 1 ? "game" : "games"}
+          </div>
         </div>
         <Badges s={s} />
       </div>
