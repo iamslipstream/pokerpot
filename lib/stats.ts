@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma";
 
+export type Streak = {
+  kind: "win" | "loss";
+  count: number;
+};
+
 export type PlayerStats = {
   displayName: string; // most common casing
   normalizedName: string; // lowercase, trimmed — used for grouping
@@ -7,6 +12,12 @@ export type PlayerStats = {
   gamesPlayed: number;
   bestNight: number; // cents (max net in a single game)
   worstNight: number; // cents (min net, can be negative)
+  totalBuyIn: number; // cents — for "whale" title
+  variance: number; // population variance of per-night net (cents²) — for "rock" title
+  streak: Streak | null; // current consecutive same-direction streak (>=2 only)
+  // Title flags — set after the array is computed
+  isWhale: boolean;
+  isRock: boolean;
 };
 
 export async function getLifetimeStats(
@@ -15,11 +26,14 @@ export async function getLifetimeStats(
   const settledGames = await prisma.game.findMany({
     where: { hostId, status: "settled" },
     include: { players: { include: { buyIns: true } } },
+    orderBy: { endedAt: "asc" },
   });
 
   type Entry = {
     nameCounts: Map<string, number>;
+    nets: number[]; // per-game net, in chronological order
     totalNet: number;
+    totalBuyIn: number;
     games: number;
     best: number;
     worst: number;
@@ -37,7 +51,9 @@ export async function getLifetimeStats(
       if (!entry) {
         entry = {
           nameCounts: new Map(),
+          nets: [],
           totalNet: 0,
+          totalBuyIn: 0,
           games: 0,
           best: net,
           worst: net,
@@ -49,7 +65,9 @@ export async function getLifetimeStats(
         original,
         (entry.nameCounts.get(original) ?? 0) + 1
       );
+      entry.nets.push(net);
       entry.totalNet += net;
+      entry.totalBuyIn += totalBuyIn;
       entry.games += 1;
       if (net > entry.best) entry.best = net;
       if (net < entry.worst) entry.worst = net;
@@ -66,6 +84,32 @@ export async function getLifetimeStats(
           displayName = name;
         }
       }
+
+      // Variance — population variance of per-game net.
+      const mean = e.totalNet / e.games;
+      let variance = 0;
+      for (const n of e.nets) variance += (n - mean) ** 2;
+      variance /= e.games;
+
+      // Current streak — walk backwards from most recent settled game.
+      let streak: Streak | null = null;
+      if (e.nets.length >= 2) {
+        const last = e.nets[e.nets.length - 1];
+        if (last !== 0) {
+          const kind: "win" | "loss" = last > 0 ? "win" : "loss";
+          let count = 1;
+          for (let i = e.nets.length - 2; i >= 0; i--) {
+            const v = e.nets[i];
+            if ((kind === "win" && v > 0) || (kind === "loss" && v < 0)) {
+              count++;
+            } else {
+              break;
+            }
+          }
+          if (count >= 2) streak = { kind, count };
+        }
+      }
+
       return {
         displayName,
         normalizedName: key,
@@ -73,9 +117,30 @@ export async function getLifetimeStats(
         gamesPlayed: e.games,
         bestNight: e.best,
         worstNight: e.worst,
+        totalBuyIn: e.totalBuyIn,
+        variance,
+        streak,
+        isWhale: false,
+        isRock: false,
       };
     })
     .sort((a, b) => b.lifetimeNet - a.lifetimeNet);
+
+  // Whale: most cumulative buy-in. Rock: smallest variance (≥3 games).
+  if (stats.length > 0) {
+    const whale = stats.reduce((a, b) =>
+      b.totalBuyIn > a.totalBuyIn ? b : a
+    );
+    whale.isWhale = true;
+
+    const rockCandidates = stats.filter((s) => s.gamesPlayed >= 3);
+    if (rockCandidates.length > 0) {
+      const rock = rockCandidates.reduce((a, b) =>
+        b.variance < a.variance ? b : a
+      );
+      rock.isRock = true;
+    }
+  }
 
   return { stats, totalSettledGames: settledGames.length };
 }

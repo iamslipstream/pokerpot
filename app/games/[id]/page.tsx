@@ -18,6 +18,9 @@ import {
 import { ChipsEditor } from "./ChipsEditor";
 import { AutoRefresh } from "./AutoRefresh";
 import { qrSvgDataUri } from "@/lib/qrcode";
+import { getPlayerPhotoMap } from "@/lib/photos";
+import { Avatar } from "@/app/components/Avatar";
+import { Confetti } from "@/app/components/Confetti";
 
 async function getOrigin() {
   const h = await headers();
@@ -55,6 +58,7 @@ export default async function GameAdminPage({
 
   const origin = await getOrigin();
   const chipDenoms = parseChipDenominations(game.chipDenominations);
+  const photoMap = await getPlayerPhotoMap();
 
   // Generate QR codes for all players (server-side, parallel).
   const qrcodes = await Promise.all(
@@ -106,8 +110,11 @@ export default async function GameAdminPage({
   const waUrl = `https://wa.me/?text=${encodeURIComponent(shareLines.join("\n"))}`;
 
   return (
-    <main className="min-h-screen px-6 py-12">
-      <div className="mx-auto w-full max-w-2xl">
+    <main className="relative min-h-screen overflow-hidden px-6 py-12">
+      {game.status === "settled" && <Confetti seed={game.id} />}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-50/50 via-zinc-50 to-amber-50/50 dark:from-emerald-950/20 dark:via-black dark:to-amber-950/20" />
+
+      <div className="relative z-10 mx-auto w-full max-w-2xl animate-fade-in">
         <Link
           href="/dashboard"
           className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -161,7 +168,10 @@ export default async function GameAdminPage({
                       className="h-32 w-32"
                     />
                   )}
-                  <span className="text-sm font-medium">{p.name}</span>
+                  <div className="flex items-center gap-1.5">
+                    <Avatar name={p.name} photoMap={photoMap} size="sm" />
+                    <span className="text-sm font-medium">{p.name}</span>
+                  </div>
                 </div>
               );
             })}
@@ -178,7 +188,8 @@ export default async function GameAdminPage({
                 key={p.id}
                 className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <Avatar name={p.name} photoMap={photoMap} size="md" />
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-black dark:text-zinc-50">
                       {p.name}
@@ -420,6 +431,19 @@ export default async function GameAdminPage({
           )}
         </section>
 
+        {/* AI recap --------------------------------------------------------- */}
+        {game.status === "settled" && game.recap && (
+          <section className="mt-8 animate-fade-up rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-emerald-50 p-5 shadow-sm dark:border-amber-900/60 dark:from-amber-950 dark:via-zinc-950 dark:to-emerald-950">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-amber-700 dark:text-amber-300">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+              The recap
+            </div>
+            <p className="mt-2 font-serif text-lg leading-snug text-zinc-800 dark:text-zinc-100">
+              {game.recap}
+            </p>
+          </section>
+        )}
+
         {/* Settlements ------------------------------------------------------ */}
         {game.status === "settled" && (
           <section className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950">
@@ -435,11 +459,14 @@ export default async function GameAdminPage({
                 {txns.map((t, i) => (
                   <li
                     key={i}
-                    className="rounded-lg bg-white px-3 py-2 text-sm shadow-sm dark:bg-zinc-900"
+                    className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm shadow-sm dark:bg-zinc-900"
                   >
-                    <span className="font-medium">{t.fromName}</span> pays{" "}
-                    <span className="font-medium">{t.toName}</span>{" "}
-                    <span className="font-mono">
+                    <Avatar name={t.fromName} photoMap={photoMap} size="sm" />
+                    <span className="font-medium">{t.fromName}</span>
+                    <span className="text-zinc-400">pays</span>
+                    <Avatar name={t.toName} photoMap={photoMap} size="sm" />
+                    <span className="font-medium">{t.toName}</span>
+                    <span className="ml-auto font-mono">
                       {centsToEuros(t.amount)}
                     </span>
                   </li>

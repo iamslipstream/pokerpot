@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { eurosToCents } from "@/lib/money";
 import { generateSlug } from "@/lib/slug";
 import type { ChipDenomination } from "@/lib/chips";
+import { generateRecap } from "@/lib/recap";
 import { revalidatePath } from "next/cache";
 
 async function ownGameOrThrow(gameId: string) {
@@ -110,14 +111,37 @@ export async function setStatus(formData: FormData) {
     throw new Error("Bad status");
   }
 
+  let recap: string | null = null;
+
   // Validate transitions
   if (next === "settled") {
-    const players = await prisma.player.findMany({ where: { gameId } });
+    const players = await prisma.player.findMany({
+      where: { gameId },
+      include: { buyIns: true },
+    });
     const missing = players.filter((p) => p.finalAmount == null);
     if (missing.length > 0) {
       throw new Error(
         `Waiting on cash-out from: ${missing.map((p) => p.name).join(", ")}`
       );
+    }
+
+    // Best-effort AI recap. Failure must not block settlement.
+    try {
+      const results = players.map((p) => {
+        const buyIn = p.buyIns.reduce((s, b) => s + b.amount, 0);
+        return {
+          name: p.name,
+          net: (p.finalAmount ?? 0) - buyIn,
+          buyIn,
+        };
+      });
+      recap = await generateRecap({
+        gameName: game.name,
+        results,
+      });
+    } catch (err) {
+      console.error("[recap] generation failed:", err);
     }
   }
 
@@ -126,10 +150,14 @@ export async function setStatus(formData: FormData) {
     data: {
       status: next,
       endedAt: next === "settled" ? new Date() : null,
+      // Set recap only when generated; clear on reopen.
+      ...(next === "settled" && recap ? { recap } : {}),
+      ...(next !== "settled" ? { recap: null } : {}),
     },
   });
 
   revalidatePath(`/games/${gameId}`);
+  revalidatePath("/dashboard");
 }
 
 export async function deleteGame(formData: FormData) {

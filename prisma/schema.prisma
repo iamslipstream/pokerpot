@@ -65,6 +65,7 @@ model Game {
   defaultBuyIn      Int // cents (e.g. 2000 = €20.00)
   status            String    @default("setup") // "setup" | "cashout" | "settled"
   chipDenominations Json? // [{ color: "red", value: 100 }, ...] — values in cents
+  recap             String? // AI-generated recap, set on settle
   createdAt         DateTime  @default(now())
   endedAt           DateTime?
 

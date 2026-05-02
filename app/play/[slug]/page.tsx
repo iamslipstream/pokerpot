@@ -4,6 +4,9 @@ import { settle } from "@/lib/settle";
 import { parseChipDenominations } from "@/lib/chips";
 import { notFound } from "next/navigation";
 import { CashoutEntry } from "./CashoutEntry";
+import { getPlayerPhotoMap } from "@/lib/photos";
+import { Avatar } from "@/app/components/Avatar";
+import { Confetti } from "@/app/components/Confetti";
 import type { Metadata } from "next";
 
 export async function generateMetadata({
@@ -46,6 +49,7 @@ export default async function PlayerPage({
   const totalBuyIn = player.buyIns.reduce((s, b) => s + b.amount, 0);
   const status = player.game.status;
   const chipDenoms = parseChipDenominations(player.game.chipDenominations);
+  const photoMap = await getPlayerPhotoMap();
 
   // Compute settlements if game is settled
   let myTxns: { fromName: string; toName: string; amount: number; iAmFrom: boolean }[] = [];
@@ -77,15 +81,24 @@ export default async function PlayerPage({
 
   return (
     <main className="relative min-h-screen overflow-hidden px-6 py-12">
+      {status === "settled" && myNet !== null && myNet > 0 && (
+        <Confetti seed={`${player.id}-win`} />
+      )}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-100 via-white to-amber-100 dark:from-emerald-950 dark:via-black dark:to-amber-950" />
+      <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 animate-drift rounded-full bg-emerald-300/30 blur-3xl dark:bg-emerald-700/20" />
 
-      <div className="relative z-10 mx-auto w-full max-w-md">
-        <p className="text-xs uppercase tracking-wide text-zinc-500">
-          {player.game.name ?? "Poker game"}
-        </p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
-          Hi, {player.name}
-        </h1>
+      <div className="relative z-10 mx-auto w-full max-w-md animate-fade-in">
+        <div className="flex items-center gap-4">
+          <Avatar name={player.name} photoMap={photoMap} size="xl" />
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-wide text-zinc-500">
+              {player.game.name ?? "Poker game"}
+            </p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
+              Hi, {player.name}
+            </h1>
+          </div>
+        </div>
 
         {/* Buy-ins summary */}
         <section className="mt-6 rounded-2xl border border-zinc-200 bg-white/80 p-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
@@ -124,24 +137,32 @@ export default async function PlayerPage({
         ) : (
           <>
             {/* Settled view */}
-            <section className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/80">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
+            <section
+              className={`mt-6 animate-fade-up rounded-2xl border p-5 backdrop-blur ${
+                myNet !== null && myNet > 0
+                  ? "border-emerald-200 bg-emerald-50/80 dark:border-emerald-900 dark:bg-emerald-950/80"
+                  : myNet !== null && myNet < 0
+                    ? "border-red-200 bg-red-50/80 dark:border-red-900 dark:bg-red-950/80"
+                    : "border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-zinc-950/80"
+              }`}
+            >
+              <h2 className="text-xs font-medium uppercase tracking-widest text-zinc-500">
                 Result
               </h2>
-              <p className="mt-2 text-2xl font-semibold">
+              <p className="mt-2 animate-pop font-mono text-5xl font-bold tracking-tight">
                 {myNet === null
                   ? "—"
                   : myNet >= 0
                     ? `+${centsToEuros(myNet)}`
                     : centsToEuros(myNet)}
               </p>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                 {myNet === null
                   ? "Waiting for everyone…"
                   : myNet > 0
-                    ? "You won."
+                    ? "You won. 🎉"
                     : myNet < 0
-                      ? "You lost."
+                      ? "You lost. 💀"
                       : "You broke even."}
               </p>
 
@@ -179,12 +200,15 @@ export default async function PlayerPage({
                 <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
                   Everyone&apos;s settlements
                 </h2>
-                <ul className="mt-2 flex flex-col gap-1.5 text-sm">
+                <ul className="mt-2 flex flex-col gap-2 text-sm">
                   {allTxns.map((t, i) => (
-                    <li key={i}>
-                      <span className="font-medium">{t.fromName}</span> →{" "}
-                      <span className="font-medium">{t.toName}</span>{" "}
-                      <span className="font-mono text-zinc-500">
+                    <li key={i} className="flex items-center gap-1.5">
+                      <Avatar name={t.fromName} photoMap={photoMap} size="sm" />
+                      <span className="font-medium">{t.fromName}</span>
+                      <span className="text-zinc-400">→</span>
+                      <Avatar name={t.toName} photoMap={photoMap} size="sm" />
+                      <span className="font-medium">{t.toName}</span>
+                      <span className="ml-auto font-mono text-zinc-500">
                         {centsToEuros(t.amount)}
                       </span>
                     </li>

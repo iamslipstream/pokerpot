@@ -2,45 +2,10 @@ import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { centsToEuros } from "@/lib/money";
 import { getLifetimeStats } from "@/lib/stats";
+import { getPlayerPhotoMap } from "@/lib/photos";
+import { Avatar } from "@/app/components/Avatar";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { readdir } from "node:fs/promises";
-import path from "node:path";
-
-const PHOTO_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"];
-
-function playerSlug(normalizedName: string): string {
-  return normalizedName
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "");
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-async function getPlayerPhotoMap(): Promise<Map<string, string>> {
-  const dir = path.join(process.cwd(), "public", "players");
-  const map = new Map<string, string>();
-  try {
-    const files = await readdir(dir);
-    for (const f of files) {
-      const ext = path.extname(f).toLowerCase();
-      if (!PHOTO_EXTS.includes(ext)) continue;
-      const base = path.basename(f, ext).toLowerCase();
-      if (!map.has(base)) map.set(base, f);
-    }
-  } catch {
-    // directory doesn't exist yet — no photos available
-  }
-  return map;
-}
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -48,7 +13,7 @@ export default async function DashboardPage() {
     redirect("/api/auth/signin?callbackUrl=/dashboard");
   }
 
-  const [games, lifetime, photoMap] = await Promise.all([
+  const [games, lifetime, photoMap, latestRecap] = await Promise.all([
     prisma.game.findMany({
       where: { hostId: session.user.id },
       include: { players: { include: { buyIns: true } } },
@@ -56,11 +21,23 @@ export default async function DashboardPage() {
     }),
     getLifetimeStats(session.user.id),
     getPlayerPhotoMap(),
+    prisma.game.findFirst({
+      where: {
+        hostId: session.user.id,
+        status: "settled",
+        recap: { not: null },
+      },
+      orderBy: { endedAt: "desc" },
+      select: { id: true, name: true, recap: true, endedAt: true },
+    }),
   ]);
 
   return (
-    <main className="min-h-screen px-6 py-12">
-      <div className="mx-auto w-full max-w-2xl">
+    <main className="relative min-h-screen overflow-hidden px-6 py-12">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-50/60 via-zinc-50 to-amber-50/60 dark:from-emerald-950/20 dark:via-black dark:to-amber-950/20" />
+      <div className="pointer-events-none absolute -top-32 left-1/2 h-80 w-80 -translate-x-1/2 animate-drift rounded-full bg-emerald-300/20 blur-3xl dark:bg-emerald-700/15" />
+
+      <div className="relative z-10 mx-auto w-full max-w-2xl animate-fade-in">
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
@@ -88,13 +65,33 @@ export default async function DashboardPage() {
         <div className="mt-8">
           <Link
             href="/games/new"
-            className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white shadow hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-black/10 transition hover:scale-[1.02] hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
           >
             + New game
           </Link>
         </div>
 
-        <ul className="mt-8 flex flex-col gap-3">
+        {latestRecap?.recap && (
+          <Link
+            href={`/games/${latestRecap.id}`}
+            className="group mt-6 block animate-fade-up rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-5 shadow-sm transition hover:shadow-md dark:border-emerald-900/60 dark:from-emerald-950 dark:via-zinc-950 dark:to-amber-950"
+          >
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+              Last night&apos;s recap
+              {latestRecap.name && (
+                <span className="text-zinc-400 dark:text-zinc-500">
+                  · {latestRecap.name}
+                </span>
+              )}
+            </div>
+            <p className="mt-2 font-serif text-lg leading-snug text-zinc-800 dark:text-zinc-100">
+              {latestRecap.recap}
+            </p>
+          </Link>
+        )}
+
+        <ul className="stagger mt-8 flex flex-col gap-3">
           {games.length === 0 ? (
             <li className="rounded-xl border border-dashed border-zinc-300 p-8 text-center text-zinc-500 dark:border-zinc-700">
               No games yet. Click <span className="font-medium">New game</span>{" "}
@@ -109,7 +106,7 @@ export default async function DashboardPage() {
                 <li key={g.id}>
                   <Link
                     href={`/games/${g.id}`}
-                    className="block rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-zinc-400 hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600"
+                    className="card-lift block rounded-xl border border-zinc-200 bg-white/80 p-4 backdrop-blur hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950/80 dark:hover:border-zinc-600"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -152,35 +149,24 @@ export default async function DashboardPage() {
               </span>
             </div>
 
-            <ul className="mt-3 flex flex-col gap-2">
+            <ul className="stagger mt-3 flex flex-col gap-2">
               {lifetime.stats.map((s, i) => {
                 const positive = s.lifetimeNet > 0;
                 const negative = s.lifetimeNet < 0;
-                const photoFile = photoMap.get(playerSlug(s.normalizedName));
                 return (
                   <li
                     key={s.normalizedName}
-                    className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950"
+                    className="card-lift rounded-xl border border-zinc-200 bg-white/80 p-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      {photoFile ? (
-                        <Image
-                          src={`/players/${photoFile}`}
-                          alt={s.displayName}
-                          width={40}
-                          height={40}
-                          className="h-10 w-10 shrink-0 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          aria-hidden
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                        >
-                          {initials(s.displayName)}
-                        </div>
-                      )}
+                      <Avatar
+                        name={s.displayName}
+                        photoMap={photoMap}
+                        size="md"
+                        ring={i === 0 && positive ? "gold" : "soft"}
+                      />
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           {i === 0 && positive && (
                             <span title="Top winner" className="text-base">
                               👑
@@ -194,6 +180,34 @@ export default async function DashboardPage() {
                           <span className="font-medium text-black dark:text-zinc-50">
                             {s.displayName}
                           </span>
+                          {s.isWhale && (
+                            <span
+                              title={`Whale — most bought in (${centsToEuros(s.totalBuyIn)})`}
+                              className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-800 dark:bg-blue-950 dark:text-blue-200"
+                            >
+                              🐋 Whale
+                            </span>
+                          )}
+                          {s.isRock && (
+                            <span
+                              title="Rock — steadiest player (lowest variance)"
+                              className="rounded-full bg-stone-200 px-1.5 py-0.5 text-[10px] font-medium text-stone-800 dark:bg-stone-800 dark:text-stone-200"
+                            >
+                              🪨 Rock
+                            </span>
+                          )}
+                          {s.streak && (
+                            <span
+                              title={`${s.streak.count} ${s.streak.kind === "win" ? "wins" : "losses"} in a row`}
+                              className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                                s.streak.kind === "win"
+                                  ? "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200"
+                                  : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200"
+                              }`}
+                            >
+                              {s.streak.kind === "win" ? "🔥" : "🥶"} {s.streak.count}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-0.5 text-xs text-zinc-500">
                           {s.gamesPlayed}{" "}
