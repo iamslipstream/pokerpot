@@ -69,11 +69,8 @@ export function Leaderboard({
       </div>
 
       {/* Per-player breakdown -------------------------------------------- */}
-      <details className="mt-4 rounded-xl border border-zinc-200 bg-white/60 px-4 py-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/60">
-        <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-zinc-500">
-          Show full stats
-        </summary>
-        <div className="mt-3 flex items-center gap-3 border-b border-zinc-200 px-2 pb-1.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:border-zinc-800">
+      <div className="mt-4 rounded-xl border border-zinc-200 bg-white/60 px-4 py-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/60">
+        <div className="flex items-center gap-3 border-b border-zinc-200 px-2 pb-1.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:border-zinc-800">
           <span className="w-7 shrink-0 text-center">#</span>
           <span className="w-8 shrink-0" aria-hidden />
           <span className="min-w-0 flex-1">Player</span>
@@ -106,7 +103,7 @@ export function Leaderboard({
             </li>
           ))}
         </ul>
-      </details>
+      </div>
 
       <p className="mt-3 text-[10px] text-zinc-400">
         Players matched by name (case-insensitive). Use consistent names across
