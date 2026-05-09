@@ -85,15 +85,25 @@ function PodiumStep({
             {s.displayName}
           </div>
           <div
-            className={`font-mono text-lg font-bold ${netClass(s.lifetimeNet)}`}
-            title={`ROI: net ${formatNet(s.lifetimeNet)} on ${centsToEuros(s.totalBuyIn)} buy-in`}
+            className="mt-1 inline-flex items-baseline justify-center gap-1"
+            title={`ROI ${formatRoi(s.roi)} = net ${formatNet(s.lifetimeNet)} on ${centsToEuros(s.totalBuyIn)} buy-in`}
           >
-            {formatRoi(s.roi)}
+            <span className={`font-mono text-xl font-bold leading-none ${netClass(s.lifetimeNet)}`}>
+              {formatRoi(s.roi)}
+            </span>
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+              ROI
+            </span>
           </div>
-          <div className={`font-mono text-[11px] ${netClass(s.lifetimeNet)}`}>
-            {formatNet(s.lifetimeNet)}
+          <div className="mt-1 inline-flex items-baseline justify-center gap-1">
+            <span className={`font-mono text-sm font-semibold leading-none ${netClass(s.lifetimeNet)}`}>
+              {formatNet(s.lifetimeNet)}
+            </span>
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+              Net
+            </span>
           </div>
-          <div className="text-[10px] text-zinc-500">
+          <div className="mt-1 text-[10px] text-zinc-500">
             {s.gamesPlayed} {s.gamesPlayed === 1 ? "game" : "games"} ·{" "}
             {centsToEuros(s.totalBuyIn)} in
           </div>
@@ -233,13 +243,23 @@ export function Leaderboard({
                 </div>
                 <div
                   className="text-right"
-                  title={`ROI: net ${formatNet(s.lifetimeNet)} on ${centsToEuros(s.totalBuyIn)} buy-in`}
+                  title={`ROI ${formatRoi(s.roi)} = net ${formatNet(s.lifetimeNet)} on ${centsToEuros(s.totalBuyIn)} buy-in`}
                 >
-                  <div className={`font-mono text-base font-semibold ${netClass(s.lifetimeNet)}`}>
-                    {formatRoi(s.roi)}
+                  <div className="flex items-baseline justify-end gap-1">
+                    <span className={`font-mono text-base font-bold ${netClass(s.lifetimeNet)}`}>
+                      {formatRoi(s.roi)}
+                    </span>
+                    <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+                      ROI
+                    </span>
                   </div>
-                  <div className={`font-mono text-[11px] ${netClass(s.lifetimeNet)}`}>
-                    {formatNet(s.lifetimeNet)}
+                  <div className="flex items-baseline justify-end gap-1">
+                    <span className={`font-mono text-xs font-medium ${netClass(s.lifetimeNet)}`}>
+                      {formatNet(s.lifetimeNet)}
+                    </span>
+                    <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+                      Net
+                    </span>
                   </div>
                 </div>
               </li>
@@ -253,7 +273,15 @@ export function Leaderboard({
         <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-zinc-500">
           Show full stats
         </summary>
-        <ul className="mt-3 flex flex-col gap-2">
+        <div className="mt-3 flex items-center gap-3 border-b border-zinc-200 px-2 pb-1.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:border-zinc-800">
+          <span className="w-7 shrink-0 text-center">#</span>
+          <span className="min-w-0 flex-1">Player</span>
+          <span>Games</span>
+          <span className="w-16 text-right">Bought in</span>
+          <span className="w-20 text-right">Net P/L</span>
+          <span className="w-14 text-right">ROI</span>
+        </div>
+        <ul className="mt-1 flex flex-col gap-1">
           {stats.map((s, i) => (
             <li
               key={s.normalizedName}
