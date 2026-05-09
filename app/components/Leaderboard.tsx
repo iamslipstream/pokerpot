@@ -11,6 +11,14 @@ function netClass(n: number): string {
   return "text-zinc-500";
 }
 
+function roiPillClass(n: number): string {
+  if (n > 0)
+    return "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-900";
+  if (n < 0)
+    return "bg-red-100 text-red-800 ring-1 ring-red-200 dark:bg-red-950 dark:text-red-200 dark:ring-red-900";
+  return "bg-zinc-100 text-zinc-700 ring-1 ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-zinc-700";
+}
+
 function formatNet(n: number): string {
   return `${n > 0 ? "+" : ""}${centsToEuros(n)}`;
 }
@@ -85,25 +93,20 @@ function PodiumStep({
             {s.displayName}
           </div>
           <div
-            className="mt-1 inline-flex items-baseline justify-center gap-1"
+            className={`mt-1.5 inline-flex items-baseline gap-1 rounded-full px-2.5 py-1 ${roiPillClass(s.lifetimeNet)}`}
             title={`ROI ${formatRoi(s.roi)} = net ${formatNet(s.lifetimeNet)} on ${centsToEuros(s.totalBuyIn)} buy-in`}
           >
-            <span className={`font-mono text-xl font-bold leading-none ${netClass(s.lifetimeNet)}`}>
+            <span className={`font-mono leading-none ${rank === 1 ? "text-2xl font-extrabold" : "text-xl font-bold"}`}>
               {formatRoi(s.roi)}
             </span>
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+            <span className="text-[9px] font-bold uppercase tracking-wider opacity-70">
               ROI
             </span>
           </div>
-          <div className="mt-1 inline-flex items-baseline justify-center gap-1">
-            <span className={`font-mono text-sm font-semibold leading-none ${netClass(s.lifetimeNet)}`}>
-              {formatNet(s.lifetimeNet)}
-            </span>
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
-              Net
-            </span>
+          <div className={`mt-1.5 font-mono text-xs font-semibold ${netClass(s.lifetimeNet)}`}>
+            {formatNet(s.lifetimeNet)} <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Net</span>
           </div>
-          <div className="mt-1 text-[10px] text-zinc-500">
+          <div className="mt-0.5 text-[10px] text-zinc-500">
             {s.gamesPlayed} {s.gamesPlayed === 1 ? "game" : "games"} ·{" "}
             {centsToEuros(s.totalBuyIn)} in
           </div>
@@ -224,7 +227,7 @@ export function Leaderboard({
                 key={s.normalizedName}
                 className="card-lift flex items-center gap-3 rounded-xl border border-zinc-200 bg-white/80 p-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80"
               >
-                <span className="w-7 shrink-0 text-center font-mono text-sm font-semibold text-zinc-400">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 font-mono text-xs font-bold text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-zinc-700">
                   {rank}
                 </span>
                 <Avatar name={s.displayName} photoMap={photoMap} size="md" />
@@ -242,21 +245,19 @@ export function Leaderboard({
                   </div>
                 </div>
                 <div
-                  className="text-right"
+                  className="flex flex-col items-end gap-1"
                   title={`ROI ${formatRoi(s.roi)} = net ${formatNet(s.lifetimeNet)} on ${centsToEuros(s.totalBuyIn)} buy-in`}
                 >
-                  <div className="flex items-baseline justify-end gap-1">
-                    <span className={`font-mono text-base font-bold ${netClass(s.lifetimeNet)}`}>
+                  <div className={`inline-flex items-baseline gap-1 rounded-full px-2.5 py-0.5 ${roiPillClass(s.lifetimeNet)}`}>
+                    <span className="font-mono text-sm font-bold leading-none">
                       {formatRoi(s.roi)}
                     </span>
-                    <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+                    <span className="text-[9px] font-bold uppercase tracking-wider opacity-70">
                       ROI
                     </span>
                   </div>
-                  <div className="flex items-baseline justify-end gap-1">
-                    <span className={`font-mono text-xs font-medium ${netClass(s.lifetimeNet)}`}>
-                      {formatNet(s.lifetimeNet)}
-                    </span>
+                  <div className={`font-mono text-xs font-medium ${netClass(s.lifetimeNet)}`}>
+                    {formatNet(s.lifetimeNet)}{" "}
                     <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
                       Net
                     </span>
@@ -279,26 +280,26 @@ export function Leaderboard({
           <span>Games</span>
           <span className="w-16 text-right">Bought in</span>
           <span className="w-20 text-right">Net P/L</span>
-          <span className="w-14 text-right">ROI</span>
+          <span className="w-16 text-center">ROI</span>
         </div>
-        <ul className="mt-1 flex flex-col gap-1">
+        <ul className="mt-1 flex flex-col">
           {stats.map((s, i) => (
             <li
               key={s.normalizedName}
-              className="flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm"
+              className="flex items-center gap-3 rounded-lg px-2 py-2 text-sm odd:bg-zinc-50/60 dark:odd:bg-zinc-900/40"
             >
-              <span className="w-7 shrink-0 text-center font-mono text-xs text-zinc-400">
+              <span className="w-7 shrink-0 text-center font-mono text-xs font-semibold text-zinc-400">
                 {i + 1}
               </span>
               <span className="min-w-0 flex-1 truncate">{s.displayName}</span>
-              <span className="text-xs text-zinc-500">{s.gamesPlayed}g</span>
+              <span className="font-mono text-xs text-zinc-500">{s.gamesPlayed}g</span>
               <span className="w-16 text-right font-mono text-xs text-zinc-500">
                 {centsToEuros(s.totalBuyIn)}
               </span>
-              <span className={`w-20 text-right font-mono text-xs ${netClass(s.lifetimeNet)}`}>
+              <span className={`w-20 text-right font-mono text-xs font-medium ${netClass(s.lifetimeNet)}`}>
                 {formatNet(s.lifetimeNet)}
               </span>
-              <span className={`w-14 text-right font-mono font-semibold ${netClass(s.lifetimeNet)}`}>
+              <span className={`inline-flex w-16 justify-center rounded-full px-2 py-0.5 text-right font-mono text-xs font-bold ${roiPillClass(s.lifetimeNet)}`}>
                 {formatRoi(s.roi)}
               </span>
             </li>
