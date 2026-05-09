@@ -145,6 +145,23 @@ export function Leaderboard({
         </div>
       </div>
 
+      {/* How it works ----------------------------------------------------- */}
+      <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs leading-relaxed text-zinc-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-zinc-300">
+        <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+          How ranking works:
+        </span>{" "}
+        ROI is your profit per €1 bought in.{" "}
+        <span className="font-mono font-semibold text-emerald-700 dark:text-emerald-400">
+          +50%
+        </span>{" "}
+        = bought in €100, cashed out €150.{" "}
+        <span className="font-mono font-semibold text-red-700 dark:text-red-400">
+          −20%
+        </span>{" "}
+        = bought in €100, walked with €80. Highest ROI wins; ties go to whoever
+        put more money on the table.
+      </div>
+
       {/* Podium ----------------------------------------------------------- */}
       <div className="rounded-2xl border border-zinc-200 bg-gradient-to-b from-white via-amber-50/40 to-emerald-50/40 p-4 pb-0 shadow-sm dark:border-zinc-800 dark:from-zinc-950 dark:via-amber-950/20 dark:to-emerald-950/20">
         <div className="flex items-end justify-center gap-2 sm:gap-4">
