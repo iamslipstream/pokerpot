@@ -45,9 +45,6 @@ export default async function DashboardPage() {
               Welcome back
               {session.user.name ? `, ${session.user.name.split(" ")[0]}` : ""}.
             </h1>
-            <p className="mt-1 text-sm text-zinc-500">
-              {session.user.email}
-            </p>
           </div>
           <Link
             href="/games/new"

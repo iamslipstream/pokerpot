@@ -28,14 +28,6 @@ export function SiteFooter() {
           >
             How it works
           </Link>
-          <a
-            href="https://github.com/iamslipstream/pokerpot"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="transition hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            GitHub
-          </a>
           <span className="text-zinc-400 dark:text-zinc-600">© {year}</span>
         </div>
       </div>
