@@ -15,6 +15,11 @@ function formatNet(n: number): string {
   return `${n > 0 ? "+" : ""}${centsToEuros(n)}`;
 }
 
+function formatRoi(roi: number): string {
+  const pct = Math.round(roi * 100);
+  return `${pct > 0 ? "+" : ""}${pct}%`;
+}
+
 function Badges({ s }: { s: PlayerStats }) {
   return (
     <div className="flex flex-wrap items-center justify-center gap-1">
@@ -79,11 +84,18 @@ function PodiumStep({
           <div className="truncate text-sm font-semibold text-black dark:text-zinc-50">
             {s.displayName}
           </div>
-          <div className={`font-mono text-base font-bold ${netClass(s.lifetimeNet)}`}>
+          <div
+            className={`font-mono text-lg font-bold ${netClass(s.lifetimeNet)}`}
+            title={`ROI: net ${formatNet(s.lifetimeNet)} on ${centsToEuros(s.totalBuyIn)} buy-in`}
+          >
+            {formatRoi(s.roi)}
+          </div>
+          <div className={`font-mono text-[11px] ${netClass(s.lifetimeNet)}`}>
             {formatNet(s.lifetimeNet)}
           </div>
           <div className="text-[10px] text-zinc-500">
-            {s.gamesPlayed} {s.gamesPlayed === 1 ? "game" : "games"}
+            {s.gamesPlayed} {s.gamesPlayed === 1 ? "game" : "games"} ·{" "}
+            {centsToEuros(s.totalBuyIn)} in
           </div>
         </div>
         <Badges s={s} />
@@ -127,7 +139,7 @@ export function Leaderboard({
             Leaderboard
           </h2>
           <p className="text-xs text-zinc-500">
-            {totalSettledGames} settled{" "}
+            Ranked by ROI · {totalSettledGames} settled{" "}
             {totalSettledGames === 1 ? "game" : "games"}
           </p>
         </div>
@@ -198,11 +210,20 @@ export function Leaderboard({
                   </div>
                   <div className="mt-0.5 text-xs text-zinc-500">
                     {s.gamesPlayed}{" "}
-                    {s.gamesPlayed === 1 ? "game" : "games"}
+                    {s.gamesPlayed === 1 ? "game" : "games"} ·{" "}
+                    {centsToEuros(s.totalBuyIn)} in
                   </div>
                 </div>
-                <div className={`font-mono text-base ${netClass(s.lifetimeNet)}`}>
-                  {formatNet(s.lifetimeNet)}
+                <div
+                  className="text-right"
+                  title={`ROI: net ${formatNet(s.lifetimeNet)} on ${centsToEuros(s.totalBuyIn)} buy-in`}
+                >
+                  <div className={`font-mono text-base font-semibold ${netClass(s.lifetimeNet)}`}>
+                    {formatRoi(s.roi)}
+                  </div>
+                  <div className={`font-mono text-[11px] ${netClass(s.lifetimeNet)}`}>
+                    {formatNet(s.lifetimeNet)}
+                  </div>
                 </div>
               </li>
             );
@@ -226,8 +247,14 @@ export function Leaderboard({
               </span>
               <span className="min-w-0 flex-1 truncate">{s.displayName}</span>
               <span className="text-xs text-zinc-500">{s.gamesPlayed}g</span>
-              <span className={`w-20 text-right font-mono ${netClass(s.lifetimeNet)}`}>
+              <span className="w-16 text-right font-mono text-xs text-zinc-500">
+                {centsToEuros(s.totalBuyIn)}
+              </span>
+              <span className={`w-20 text-right font-mono text-xs ${netClass(s.lifetimeNet)}`}>
                 {formatNet(s.lifetimeNet)}
+              </span>
+              <span className={`w-14 text-right font-mono font-semibold ${netClass(s.lifetimeNet)}`}>
+                {formatRoi(s.roi)}
               </span>
             </li>
           ))}

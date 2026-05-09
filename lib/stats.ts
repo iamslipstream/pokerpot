@@ -13,6 +13,7 @@ export type PlayerStats = {
   bestNight: number; // cents (max net in a single game)
   worstNight: number; // cents (min net, can be negative)
   totalBuyIn: number; // cents — for "whale" title
+  roi: number; // lifetimeNet / totalBuyIn (e.g. 0.42 = +42%); 0 when totalBuyIn is 0
   variance: number; // population variance of per-night net (cents²) — for "rock" title
   streak: Streak | null; // current consecutive same-direction streak (>=2 only)
   // Title flags — set after the array is computed
@@ -110,6 +111,8 @@ export async function getLifetimeStats(
         }
       }
 
+      const roi = e.totalBuyIn > 0 ? e.totalNet / e.totalBuyIn : 0;
+
       return {
         displayName,
         normalizedName: key,
@@ -118,13 +121,18 @@ export async function getLifetimeStats(
         bestNight: e.best,
         worstNight: e.worst,
         totalBuyIn: e.totalBuyIn,
+        roi,
         variance,
         streak,
         isWhale: false,
         isRock: false,
       };
     })
-    .sort((a, b) => b.lifetimeNet - a.lifetimeNet);
+    .sort((a, b) => {
+      if (b.roi !== a.roi) return b.roi - a.roi;
+      // Tiebreak: more total buy-in volume wins (larger sample, same %)
+      return b.totalBuyIn - a.totalBuyIn;
+    });
 
   // Whale: most cumulative buy-in. Rock: smallest variance (≥3 games).
   if (stats.length > 0) {
