@@ -1,4 +1,4 @@
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { centsToEuros } from "@/lib/money";
 import { getLifetimeStats } from "@/lib/stats";
@@ -38,33 +38,17 @@ export default async function DashboardPage() {
       <div className="pointer-events-none absolute -top-32 left-1/2 h-80 w-80 -translate-x-1/2 animate-drift rounded-full bg-emerald-300/20 blur-3xl dark:bg-emerald-700/15" />
 
       <div className="relative z-10 mx-auto w-full max-w-2xl animate-fade-in">
-        {/* Header ---------------------------------------------------------- */}
-        <header className="flex items-center justify-between">
+        {/* Page header ----------------------------------------------------- */}
+        <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
-              Pokerpot
+            <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
+              Welcome back
+              {session.user.name ? `, ${session.user.name.split(" ")[0]}` : ""}.
             </h1>
-            <p className="text-sm text-zinc-500">
-              {session.user.name} · {session.user.email}
+            <p className="mt-1 text-sm text-zinc-500">
+              {session.user.email}
             </p>
           </div>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/" });
-            }}
-          >
-            <button
-              type="submit"
-              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm transition hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-            >
-              Sign out
-            </button>
-          </form>
-        </header>
-
-        {/* New game CTA ---------------------------------------------------- */}
-        <div className="mt-6">
           <Link
             href="/games/new"
             className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-black/10 transition hover:scale-[1.02] hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
@@ -72,7 +56,7 @@ export default async function DashboardPage() {
             <span className="relative z-10">+ New game</span>
             <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
           </Link>
-        </div>
+        </header>
 
         {/* AI recap -------------------------------------------------------- */}
         {latestRecap?.recap && (

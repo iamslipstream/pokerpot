@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <circle cx="256" cy="256" r="232" fill="#10b981" stroke="#ffffff" stroke-width="48" stroke-dasharray="88 44"/>
+  <circle cx="256" cy="256" r="148" fill="#ffffff"/>
+  <text x="256" y="332" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="220" font-weight="700" fill="#10b981">€</text>
+</svg>
